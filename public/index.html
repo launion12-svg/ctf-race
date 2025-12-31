@@ -176,21 +176,34 @@
 </head>
 <body>
     <div id="lobby">
-        <h1>🎮 CTF RACE - Multiplayer</h1>
-        <p class="lobby-info">Compete to find the hidden FLAG!</p>
-        <div>
-            <input type="text" id="player-name" placeholder="Your name" value="">
-        </div>
-        <div>
-            <input type="text" id="room-id" placeholder="Room ID (e.g., room1)" value="room1">
-        </div>
-        <button onclick="joinRoom()">JOIN ROOM</button>
-        <div id="waiting" style="display:none;">
-            <p>Players in room: <span id="player-count">0</span></p>
-            <p class="lobby-info">Waiting for at least 2 players...</p>
-            <button onclick="setReady()" id="ready-btn">I'M READY!</button>
-        </div>
+    <h1>🎮 CTF RACE - Multiplayer</h1>
+    <p class="lobby-info">Compete to find the hidden FLAG!</p>
+
+    <div>
+        <input type="text" id="player-name" placeholder="Your name" value="">
     </div>
+
+    <div>
+        <input type="text" id="room-id" placeholder="Room ID (e.g., room1)" value="room1">
+    </div>
+
+    <!-- 🔽 SELECTOR DE ESCENARIO (AQUÍ) -->
+    <div>
+        <select id="scenario-select"
+            style="background:#2a2a2a;border:2px solid #00ff00;color:#00ff00;padding:10px;font-family:'Courier New', monospace;font-size:16px;min-width:250px;">
+            <option value="hidden_files">Hidden Files (Easy)</option>
+            <option value="log_hunter">Log Hunter (Easy)</option>
+        </select>
+    </div>
+
+    <button onclick="joinRoom()">JOIN ROOM</button>
+
+    <div id="waiting" style="display:none;">
+        <p>Players in room: <span id="player-count">0</span></p>
+        <p class="lobby-info">Waiting for at least 2 players...</p>
+        <button onclick="setReady()" id="ready-btn">I'M READY!</button>
+    </div>
+</div>
 
     <div id="game-container">
         <div id="header">
@@ -237,21 +250,22 @@
         }
 
         function joinRoom() {
-            const playerName = document.getElementById('player-name').value.trim();
-            const roomId = document.getElementById('room-id').value.trim();
-            
-            if (!playerName) {
-                alert('Please enter your name');
-                return;
-            }
-            
-            if (!roomId) {
-                alert('Please enter a room ID');
-                return;
-            }
-            
-            socket.emit('join-room', { playerName, roomId });
-        }
+    const playerName = document.getElementById('player-name').value.trim();
+    const roomId = document.getElementById('room-id').value.trim();
+    const scenarioId = document.getElementById('scenario-select').value;
+
+    if (!playerName) {
+        alert('Please enter your name');
+        return;
+    }
+
+    if (!roomId) {
+        alert('Please enter a room ID');
+        return;
+    }
+
+    socket.emit('join-room', { playerName, roomId, scenarioId });
+}
 
         function setReady() {
             socket.emit('ready');
