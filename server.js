@@ -14,7 +14,7 @@ const io = socketIO(server, {
   }
 });
 
-// Servir frontend de forma robusta (Render-friendly)
+// Servir frontend (Render-friendly)
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -28,7 +28,7 @@ app.get('/health', (req, res) => {
 // Salas de juego (cada sala tiene su propio filesystem y flag)
 const rooms = {};
 
-// Función para resolver rutas
+// Resolver rutas
 function resolvePath(currentPath, targetPath) {
   if (!targetPath) return currentPath;
   if (targetPath.startsWith('/')) return targetPath;
@@ -41,12 +41,11 @@ function resolvePath(currentPath, targetPath) {
   return currentPath === '/' ? '/' + targetPath : currentPath + '/' + targetPath;
 }
 
-// Comandos (ahora reciben roomFilesystem en vez de usar uno global)
+// Comandos (usan filesystem por sala)
 function executeCommand(cmd, args, currentPath, roomFilesystem) {
   switch (cmd.toLowerCase()) {
     case 'ls': {
-      // Soporta: ls, ls -a, ls /ruta, ls -a /ruta
-      const hasFlag = args.some(a => a.startsWith('-'));
+      // ls, ls -a, ls /ruta, ls -a /ruta
       const target = args.find(a => !a.startsWith('-'));
       const lsPath = target ? resolvePath(currentPath, target) : currentPath;
 
@@ -54,7 +53,7 @@ function executeCommand(cmd, args, currentPath, roomFilesystem) {
       if (!lsDir) return { error: `ls: cannot access '${lsPath}': No such file or directory` };
       if (lsDir.type !== 'dir') return { error: `ls: cannot access '${lsPath}': Not a directory` };
 
-      const showHidden = args.includes('-a') || args.includes('-la') || args.includes('-al') || args.includes('-l') && args.includes('-a');
+      const showHidden = args.includes('-a') || args.includes('-la') || args.includes('-al') || (args.includes('-l') && args.includes('-a'));
       const contents = lsDir.contents || [];
       const visible = showHidden ? contents : contents.filter(item => !item.startsWith('.'));
 
@@ -76,6 +75,7 @@ function executeCommand(cmd, args, currentPath, roomFilesystem) {
       if (!catFile) return { error: `cat: ${catPath}: No such file or directory` };
       if (catFile.type !== 'file') return { error: `cat: ${catPath}: Is a directory` };
 
+      // Trampas
       if (catFile.isTrap) {
         return {
           output: catFile.content,
@@ -109,7 +109,7 @@ function executeCommand(cmd, args, currentPath, roomFilesystem) {
 
     case 'find': {
       const searchPattern = args[0] || '';
-      let foundPaths = [];
+      const foundPaths = [];
 
       Object.keys(roomFilesystem).forEach(p => {
         const name = p.split('/').pop();
@@ -160,7 +160,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Crear sala si no existe (con filesystem y flag únicos por sala)
+    // Crear sala si no existe (escenario fijado por el primer jugador)
     if (!rooms[roomId]) {
       const scenario = getScenario(scenarioId || 'hidden_files', roomId);
 
@@ -170,7 +170,6 @@ io.on('connection', (socket) => {
         winner: null,
         startTime: null,
 
-        // NUEVO
         filesystem: scenario.filesystem,
         flag: scenario.flag,
         templateId: scenario.templateId
@@ -187,6 +186,7 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     socket.roomId = roomId;
 
+    // ✅ Enviamos también templateId para que el frontend bloquee el selector al escenario real
     io.to(roomId).emit('room-update', {
       players: Object.values(rooms[roomId].players).map(p => p.name),
       started: rooms[roomId].started,
@@ -243,7 +243,7 @@ io.on('connection', (socket) => {
     const cmd = (parts[0] || '').toLowerCase();
     const args = parts.slice(1);
 
-    // SUBMIT dinámico por sala
+    // ✅ submit dinámico por sala
     if (cmd === 'submit') {
       const submitted = args[0] || '';
       if (submitted === rooms[roomId].flag) {
@@ -304,6 +304,7 @@ io.on('connection', (socket) => {
       if (Object.keys(rooms[roomId].players).length === 0) {
         delete rooms[roomId];
       } else {
+        // ✅ También mandamos templateId aquí
         io.to(roomId).emit('room-update', {
           players: Object.values(rooms[roomId].players).map(p => p.name),
           started: rooms[roomId].started,
