@@ -1,363 +1,377 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CTF Race - Multiplayer</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0a0a;
-            color: #00ff00;
-            font-family: 'Courier New', monospace;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        #lobby {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            gap: 20px;
-        }
-        
-        #lobby.hidden { display: none; }
-        
-        #game-container {
-            display: none;
-            flex-direction: column;
-            height: 100vh;
-            padding: 20px;
-        }
-        
-        #game-container.active { display: flex; }
-        
-        #header {
-            background: #1a1a1a;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        #players-list {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .player-tag {
-            background: #2a2a2a;
-            padding: 5px 15px;
-            border-radius: 3px;
-            border: 1px solid #00ff00;
-            animation: pulse 2s infinite;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CTF Race - Multiplayer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-        @keyframes pulse {
-            0%, 100% { border-color: #00ff00; }
-            50% { border-color: #00ff0050; }
-        }
+    #lobby {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 20px;
+    }
 
-        .line.penalty {
-            animation: shake 0.5s;
-            background: #ff000020;
-            padding: 5px;
-            border-left: 3px solid #ff0000;
-        }
+    #lobby.hidden { display: none; }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        
-        #terminal {
-            background: #1a1a1a;
-            padding: 20px;
-            border-radius: 5px;
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        #output {
-            flex: 1;
-            margin-bottom: 20px;
-            overflow-y: auto;
-        }
-        
-        .line {
-            margin: 3px 0;
-            word-wrap: break-word;
-        }
-        
-        .error { color: #ff4444; }
-        .success { color: #ffff00; }
-        .info { color: #00ffff; }
-        
-        #input-line {
-            display: flex;
-            align-items: center;
-        }
-        
-        #prompt {
-            color: #00ff00;
-            margin-right: 10px;
-            white-space: nowrap;
-        }
-        
-        #command {
-            background: transparent;
-            border: none;
-            color: #00ff00;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            flex: 1;
-            outline: none;
-        }
-        
-        input[type="text"] {
-            background: #2a2a2a;
-            border: 2px solid #00ff00;
-            color: #00ff00;
-            padding: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            min-width: 250px;
-        }
-        
-        button {
-            background: #00ff00;
-            color: #0a0a0a;
-            border: none;
-            padding: 10px 30px;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        
-        button:hover { background: #00cc00; }
-        button:disabled { 
-            background: #666; 
-            cursor: not-allowed; 
-        }
-        
-        #notifications {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #2a2a2a;
-            padding: 10px 20px;
-            border-radius: 5px;
-            border-left: 4px solid #00ff00;
-            display: none;
-            max-width: 300px;
-        }
-        
-        #notifications.show { display: block; }
-        
-        h1 { color: #00ff00; text-align: center; }
-        
-        .lobby-info {
-            text-align: center;
-            color: #00ffff;
-            margin-top: 10px;
-        }
-    </style>
+    #game-container {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    #game-container.active { display: flex; }
+
+    #header {
+      background: #1a1a1a;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #players-list {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .player-tag {
+      background: #2a2a2a;
+      padding: 5px 15px;
+      border-radius: 3px;
+      border: 1px solid #00ff00;
+    }
+
+    #terminal {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 5px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #output {
+      flex: 1;
+      margin-bottom: 20px;
+      overflow-y: auto;
+    }
+
+    .line { margin: 3px 0; word-wrap: break-word; }
+    .error { color: #ff4444; }
+    .success { color: #ffff00; }
+    .info { color: #00ffff; }
+
+    #input-line {
+      display: flex;
+      align-items: center;
+    }
+
+    #prompt {
+      color: #00ff00;
+      margin-right: 10px;
+      white-space: nowrap;
+    }
+
+    #command {
+      background: transparent;
+      border: none;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      flex: 1;
+      outline: none;
+    }
+
+    input[type="text"], select {
+      background: #2a2a2a;
+      border: 2px solid #00ff00;
+      color: #00ff00;
+      padding: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      min-width: 250px;
+      outline: none;
+    }
+
+    select:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    button {
+      background: #00ff00;
+      color: #0a0a0a;
+      border: none;
+      padding: 10px 30px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #00cc00; }
+    button:disabled { background: #666; cursor: not-allowed; }
+
+    #notifications {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #2a2a2a;
+      padding: 10px 20px;
+      border-radius: 5px;
+      border-left: 4px solid #00ff00;
+      display: none;
+      max-width: 300px;
+    }
+
+    #notifications.show { display: block; }
+
+    h1 { color: #00ff00; text-align: center; }
+    .lobby-info { text-align: center; color: #00ffff; margin-top: 10px; }
+
+    #scenario-locked {
+      display: none;
+      margin-top: -8px;
+    }
+  </style>
 </head>
 <body>
-    <div id="lobby">
+  <div id="lobby">
     <h1>🎮 CTF RACE - Multiplayer</h1>
     <p class="lobby-info">Compete to find the hidden FLAG!</p>
 
     <div>
-        <input type="text" id="player-name" placeholder="Your name" value="">
+      <input type="text" id="player-name" placeholder="Your name" value="">
     </div>
 
     <div>
-        <input type="text" id="room-id" placeholder="Room ID (e.g., room1)" value="room1">
+      <input type="text" id="room-id" placeholder="Room ID (e.g., room1)" value="room1">
     </div>
 
-    <!-- 🔽 SELECTOR DE ESCENARIO (AQUÍ) -->
+    <!-- Selector de escenario -->
     <div>
-        <select id="scenario-select"
-            style="background:#2a2a2a;border:2px solid #00ff00;color:#00ff00;padding:10px;font-family:'Courier New', monospace;font-size:16px;min-width:250px;">
-            <option value="hidden_files">Hidden Files (Easy)</option>
-            <option value="log_hunter">Log Hunter (Easy)</option>
-        </select>
+      <select id="scenario-select">
+        <option value="hidden_files">Hidden Files (Easy)</option>
+        <option value="log_hunter">Log Hunter (Easy)</option>
+      </select>
     </div>
+
+    <!-- Texto de escenario bloqueado -->
+    <p id="scenario-locked" class="lobby-info">
+      Scenario locked: <span id="scenario-name"></span>
+    </p>
 
     <button onclick="joinRoom()">JOIN ROOM</button>
 
     <div id="waiting" style="display:none;">
-        <p>Players in room: <span id="player-count">0</span></p>
-        <p class="lobby-info">Waiting for at least 2 players...</p>
-        <button onclick="setReady()" id="ready-btn">I'M READY!</button>
+      <p>Players in room: <span id="player-count">0</span></p>
+      <p class="lobby-info">Waiting for at least 2 players...</p>
+      <button onclick="setReady()" id="ready-btn">I'M READY!</button>
     </div>
-</div>
+  </div>
 
-    <div id="game-container">
-        <div id="header">
-            <div id="players-list"></div>
-            <div id="timer">Time: <span id="time">0.0</span>s</div>
-        </div>
-        
-        <div id="terminal">
-            <div id="output"></div>
-            <div id="input-line">
-                <span id="prompt">player@ctf:~$</span>
-                <input type="text" id="command" autocomplete="off" autofocus>
-            </div>
-        </div>
+  <div id="game-container">
+    <div id="header">
+      <div id="players-list"></div>
+      <div id="timer">Time: <span id="time">0.0</span>s</div>
     </div>
 
-    <div id="notifications"></div>
+    <div id="terminal">
+      <div id="output"></div>
+      <div id="input-line">
+        <span id="prompt">player@ctf:~$</span>
+        <input type="text" id="command" autocomplete="off" autofocus>
+      </div>
+    </div>
+  </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let currentPath = '/';
-        let gameStartTime = null;
-        let timerInterval = null;
+  <div id="notifications"></div>
 
-        function addLine(text, className = '') {
-            const output = document.getElementById('output');
-            const line = document.createElement('div');
-            line.className = 'line ' + className;
-            line.textContent = text;
-            output.appendChild(line);
-            output.scrollTop = output.scrollHeight;
-        }
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let currentPath = '/';
+    let gameStartTime = null;
+    let timerInterval = null;
 
-        function updatePrompt() {
-            document.getElementById('prompt').textContent = `player@ctf:${currentPath}$`;
-        }
+    // Mapa para mostrar nombres bonitos
+    const SCENARIO_PRETTY = {
+      hidden_files: 'Hidden Files (Easy)',
+      log_hunter: 'Log Hunter (Easy)'
+    };
 
-        function showNotification(text) {
-            const notif = document.getElementById('notifications');
-            notif.textContent = text;
-            notif.classList.add('show');
-            setTimeout(() => notif.classList.remove('show'), 3000);
-        }
+    function addLine(text, className = '') {
+      const output = document.getElementById('output');
+      const line = document.createElement('div');
+      line.className = 'line ' + className;
+      line.textContent = text;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    }
 
-        function joinRoom() {
-    const playerName = document.getElementById('player-name').value.trim();
-    const roomId = document.getElementById('room-id').value.trim();
-    const scenarioId = document.getElementById('scenario-select').value;
+    function updatePrompt() {
+      document.getElementById('prompt').textContent = `player@ctf:${currentPath}$`;
+    }
 
-    if (!playerName) {
+    function showNotification(text) {
+      const notif = document.getElementById('notifications');
+      notif.textContent = text;
+      notif.classList.add('show');
+      setTimeout(() => notif.classList.remove('show'), 3000);
+    }
+
+    function lockScenario(templateId) {
+      const sel = document.getElementById('scenario-select');
+      const locked = document.getElementById('scenario-locked');
+      const nameSpan = document.getElementById('scenario-name');
+
+      if (!sel) return;
+
+      if (templateId && sel.value !== templateId) {
+        sel.value = templateId; // Corrige al escenario real de la sala
+      }
+
+      sel.disabled = true;
+
+      locked.style.display = 'block';
+      nameSpan.textContent = SCENARIO_PRETTY[templateId] || templateId || '';
+    }
+
+    function joinRoom() {
+      const playerName = document.getElementById('player-name').value.trim();
+      const roomId = document.getElementById('room-id').value.trim();
+      const scenarioId = document.getElementById('scenario-select').value;
+
+      if (!playerName) {
         alert('Please enter your name');
         return;
-    }
+      }
 
-    if (!roomId) {
+      if (!roomId) {
         alert('Please enter a room ID');
         return;
+      }
+
+      // Bloquea selector al unirte (UX)
+      document.getElementById('scenario-select').disabled = true;
+
+      socket.emit('join-room', { playerName, roomId, scenarioId });
     }
 
-    socket.emit('join-room', { playerName, roomId, scenarioId });
-}
+    function setReady() {
+      socket.emit('ready');
+      const btn = document.getElementById('ready-btn');
+      btn.disabled = true;
+      btn.textContent = 'WAITING FOR OTHERS...';
+    }
 
-        function setReady() {
-            socket.emit('ready');
-            const btn = document.getElementById('ready-btn');
-            btn.disabled = true;
-            btn.textContent = 'WAITING FOR OTHERS...';
-        }
+    socket.on('joined', () => {
+      document.getElementById('waiting').style.display = 'block';
+    });
 
-        socket.on('joined', () => {
-            document.getElementById('waiting').style.display = 'block';
-        });
+    socket.on('room-update', (data) => {
+      document.getElementById('player-count').textContent = data.players.length;
 
-        socket.on('room-update', (data) => {
-            document.getElementById('player-count').textContent = data.players.length;
-            
-            const playersList = document.getElementById('players-list');
-            playersList.innerHTML = '';
-            data.players.forEach(name => {
-                const tag = document.createElement('div');
-                tag.className = 'player-tag';
-                tag.textContent = '👤 ' + name;
-                playersList.appendChild(tag);
-            });
-        });
+      const playersList = document.getElementById('players-list');
+      playersList.innerHTML = '';
+      data.players.forEach(name => {
+        const tag = document.createElement('div');
+        tag.className = 'player-tag';
+        tag.textContent = '👤 ' + name;
+        playersList.appendChild(tag);
+      });
 
-        socket.on('game-start', (data) => {
-            document.getElementById('lobby').classList.add('hidden');
-            document.getElementById('game-container').classList.add('active');
-            
-            addLine('═══════════════════════════════════', 'success');
-            addLine('🚀 GAME STARTED! Find the FLAG!', 'success');
-            addLine('═══════════════════════════════════', 'success');
-            addLine('Type "help" for available commands', 'info');
-            addLine('');
-            
-            gameStartTime = Date.now();
-            timerInterval = setInterval(() => {
-                const elapsed = ((Date.now() - gameStartTime) / 1000).toFixed(1);
-                document.getElementById('time').textContent = elapsed;
-            }, 100);
-            
-            document.getElementById('command').focus();
-        });
+      // Si el servidor nos manda el escenario real, lo bloqueamos y lo mostramos
+      if (data.templateId) {
+        lockScenario(data.templateId);
+      }
+    });
 
-        socket.on('command-result', (result) => {
-            if (result.clear) {
-                document.getElementById('output').innerHTML = '';
-                return;
-            }
-            
-            if (result.error) {
-                addLine(result.error, result.color === 'red' ? 'error penalty' : 'error');
-            } else if (result.output) {
-                const lines = result.output.split('\n');
-                const className = result.color === 'red' ? 'penalty' : (result.color || '');
-                lines.forEach(line => addLine(line, className));
-            }
-            
-            if (result.newPath !== undefined) {
-                currentPath = result.newPath;
-                updatePrompt();
-            }
-        });
+    socket.on('game-start', () => {
+      document.getElementById('lobby').classList.add('hidden');
+      document.getElementById('game-container').classList.add('active');
 
-        socket.on('player-action', (data) => {
-            showNotification(`${data.player} used: ${data.command}`);
-        });
+      addLine('═══════════════════════════════════', 'success');
+      addLine('🚀 GAME STARTED! Find the FLAG!', 'success');
+      addLine('═══════════════════════════════════', 'success');
+      addLine('Type "help" for available commands', 'info');
+      addLine('');
 
-        socket.on('game-end', (data) => {
-            clearInterval(timerInterval);
-            addLine('');
-            addLine('═══════════════════════════════════', 'success');
-            addLine(`🏆 ${data.winner} WON in ${data.time}s!`, 'success');
-            addLine('═══════════════════════════════════', 'success');
-            addLine('');
-            addLine('Refresh the page to play again!', 'info');
-        });
+      gameStartTime = Date.now();
+      timerInterval = setInterval(() => {
+        const elapsed = ((Date.now() - gameStartTime) / 1000).toFixed(1);
+        document.getElementById('time').textContent = elapsed;
+      }, 100);
 
-        document.getElementById('command').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const input = e.target.value.trim();
-                if (!input) return;
-                
-                addLine(`${document.getElementById('prompt').textContent} ${input}`);
-                socket.emit('command', { command: input });
-                e.target.value = '';
-            }
-        });
+      document.getElementById('command').focus();
+    });
 
-        document.getElementById('terminal').addEventListener('click', () => {
-            document.getElementById('command').focus();
-        });
-    </script>
+    socket.on('command-result', (result) => {
+      if (result.clear) {
+        document.getElementById('output').innerHTML = '';
+        return;
+      }
+
+      if (result.error) {
+        addLine(result.error, 'error');
+      } else if (result.output) {
+        const lines = String(result.output).split('\n');
+        lines.forEach(line => addLine(line, result.color || ''));
+      }
+
+      if (result.newPath !== undefined) {
+        currentPath = result.newPath;
+        updatePrompt();
+      }
+    });
+
+    socket.on('player-action', (data) => {
+      showNotification(`${data.player} used: ${data.command}`);
+    });
+
+    socket.on('game-end', (data) => {
+      clearInterval(timerInterval);
+      addLine('');
+      addLine('═══════════════════════════════════', 'success');
+      addLine(`🏆 ${data.winner} WON in ${data.time}s!`, 'success');
+      addLine('═══════════════════════════════════', 'success');
+      addLine('');
+      addLine('Refresh the page to play again!', 'info');
+    });
+
+    document.getElementById('command').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const input = e.target.value.trim();
+        if (!input) return;
+
+        addLine(`${document.getElementById('prompt').textContent} ${input}`);
+        socket.emit('command', { command: input });
+        e.target.value = '';
+      }
+    });
+
+    document.getElementById('terminal').addEventListener('click', () => {
+      document.getElementById('command').focus();
+    });
+  </script>
 </body>
 </html>
