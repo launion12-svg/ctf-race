@@ -74,10 +74,18 @@
       overflow-y: auto;
     }
 
-    .line { margin: 3px 0; word-wrap: break-word; }
+    .line { 
+      margin: 3px 0; 
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
     .error { color: #ff4444; }
     .success { color: #ffff00; }
     .info { color: #00ffff; }
+    .cyan { color: #00ffff; }
+    .green { color: #00ff00; }
+    .yellow { color: #ffff00; }
+    .red { color: #ff4444; }
 
     #input-line {
       display: flex;
@@ -146,11 +154,45 @@
     #notifications.show { display: block; }
 
     h1 { color: #00ff00; text-align: center; }
+    h2 { color: #00cc00; text-align: center; font-size: 18px; margin: 10px 0; }
     .lobby-info { text-align: center; color: #00ffff; margin-top: 10px; }
 
     #scenario-locked {
       display: none;
       margin-top: -8px;
+    }
+
+    .category-section {
+      margin: 10px 0;
+    }
+
+    .category-title {
+      color: #ffff00;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    optgroup {
+      background: #1a1a1a;
+      color: #00ff00;
+      font-weight: bold;
+    }
+
+    option {
+      background: #2a2a2a;
+      color: #00ff00;
+      padding: 5px;
+    }
+
+    #host-indicator {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #2a2a2a;
+      padding: 8px 15px;
+      border-radius: 3px;
+      border: 1px solid #00ff00;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -167,11 +209,16 @@
       <input type="text" id="room-id" placeholder="Room ID (e.g., room1)" value="room1">
     </div>
 
-    <!-- Selector de escenario -->
+    <!-- Selector de escenario con categorías -->
     <div>
       <select id="scenario-select">
-        <option value="hidden_files">Hidden Files (Easy)</option>
-        <option value="log_hunter">Log Hunter (Easy)</option>
+        <optgroup label="🎯 ARCADE (Quick Games)">
+          <option value="hidden_files">Hidden Files (Easy)</option>
+          <option value="log_hunter">Log Hunter (Easy)</option>
+        </optgroup>
+        <optgroup label="🌐 NETWORK (Realistic)">
+          <option value="antonios_laptop">Antonio's Laptop (Medium)</option>
+        </optgroup>
       </select>
     </div>
 
@@ -195,6 +242,11 @@
       <div id="timer">Time: <span id="time">0.0</span>s</div>
     </div>
 
+    <!-- Indicador de host actual (solo para escenarios de red) -->
+    <div id="host-indicator" style="display:none;">
+      Host: <span id="current-host">external</span>
+    </div>
+
     <div id="terminal">
       <div id="output"></div>
       <div id="input-line">
@@ -210,13 +262,16 @@
   <script>
     const socket = io();
     let currentPath = '/';
+    let currentHost = 'external';
+    let currentCategory = 'arcade';
     let gameStartTime = null;
     let timerInterval = null;
 
     // Mapa para mostrar nombres bonitos
     const SCENARIO_PRETTY = {
       hidden_files: 'Hidden Files (Easy)',
-      log_hunter: 'Log Hunter (Easy)'
+      log_hunter: 'Log Hunter (Easy)',
+      antonios_laptop: "Antonio's Laptop (Medium)"
     };
 
     function addLine(text, className = '') {
@@ -229,7 +284,40 @@
     }
 
     function updatePrompt() {
-      document.getElementById('prompt').textContent = `player@ctf:${currentPath}$`;
+      const promptEl = document.getElementById('prompt');
+      
+      if (currentCategory === 'network') {
+        // Prompt con host para escenarios de red
+        const hostMap = {
+          'external': 'external',
+          'bastion': 'bastion',
+          'target': 'antonio-laptop'
+        };
+        const displayHost = hostMap[currentHost] || currentHost;
+        promptEl.textContent = `${displayHost}:${currentPath}$`;
+      } else {
+        // Prompt normal para arcade
+        promptEl.textContent = `player@ctf:${currentPath}$`;
+      }
+    }
+
+    function updateHostIndicator(host) {
+      if (currentCategory !== 'network') {
+        document.getElementById('host-indicator').style.display = 'none';
+        return;
+      }
+
+      const indicator = document.getElementById('host-indicator');
+      const hostSpan = document.getElementById('current-host');
+      
+      const hostNames = {
+        'external': 'External Network',
+        'bastion': 'Bastion Server',
+        'target': 'Target System'
+      };
+
+      hostSpan.textContent = hostNames[host] || host;
+      indicator.style.display = 'block';
     }
 
     function showNotification(text) {
@@ -247,7 +335,7 @@
       if (!sel) return;
 
       if (templateId && sel.value !== templateId) {
-        sel.value = templateId; // Corrige al escenario real de la sala
+        sel.value = templateId;
       }
 
       sel.disabled = true;
@@ -271,7 +359,6 @@
         return;
       }
 
-      // Bloquea selector al unirte (UX)
       document.getElementById('scenario-select').disabled = true;
 
       socket.emit('join-room', { playerName, roomId, scenarioId });
@@ -300,20 +387,36 @@
         playersList.appendChild(tag);
       });
 
-      // Si el servidor nos manda el escenario real, lo bloqueamos y lo mostramos
       if (data.templateId) {
         lockScenario(data.templateId);
       }
+
+      if (data.category) {
+        currentCategory = data.category;
+      }
     });
 
-    socket.on('game-start', () => {
+    socket.on('game-start', (data) => {
       document.getElementById('lobby').classList.add('hidden');
       document.getElementById('game-container').classList.add('active');
+
+      currentCategory = data.category || 'arcade';
 
       addLine('═══════════════════════════════════', 'success');
       addLine('🚀 GAME STARTED! Find the FLAG!', 'success');
       addLine('═══════════════════════════════════', 'success');
-      addLine('Type "help" for available commands', 'info');
+      
+      if (currentCategory === 'network') {
+        addLine('');
+        addLine('📡 Network Scenario Mode', 'cyan');
+        addLine('Type "mission" to see your briefing', 'info');
+        addLine('Type "status" to check your progress', 'info');
+        currentHost = 'external';
+        updateHostIndicator('external');
+      } else {
+        addLine('Type "help" for available commands', 'info');
+      }
+      
       addLine('');
 
       gameStartTime = Date.now();
@@ -322,6 +425,7 @@
         document.getElementById('time').textContent = elapsed;
       }, 100);
 
+      updatePrompt();
       document.getElementById('command').focus();
     });
 
@@ -332,7 +436,7 @@
       }
 
       if (result.error) {
-        addLine(result.error, 'error');
+        addLine(result.error, result.color || 'error');
       } else if (result.output) {
         const lines = String(result.output).split('\n');
         lines.forEach(line => addLine(line, result.color || ''));
@@ -340,6 +444,12 @@
 
       if (result.newPath !== undefined) {
         currentPath = result.newPath;
+        updatePrompt();
+      }
+
+      if (result.hostChanged) {
+        currentHost = result.hostChanged;
+        updateHostIndicator(currentHost);
         updatePrompt();
       }
     });
