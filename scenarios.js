@@ -1,11 +1,13 @@
-// scenarios.js - Sistema de plantillas procedurales
+// scenarios.js - Sistema de plantillas procedurales (ACTUALIZADO con Network Scenarios)
 
 // Plantillas de escenarios
 const scenarioTemplates = {
-  // ✅ ID que usa tu frontend: hidden_files
+  // ========== ARCADE SCENARIOS (ya existentes) ==========
+  
   hidden_files: {
     id: 'hidden_files',
     name: 'Hidden Files',
+    category: 'arcade',
     difficulty: 'easy',
     timeLimit: 180,
     description: 'Find the flag hidden in hidden files (use ls -a).',
@@ -20,8 +22,9 @@ const scenarioTemplates = {
   log_hunter: {
     id: 'log_hunter',
     name: 'Log Hunter',
+    category: 'arcade',
     difficulty: 'easy',
-    timeLimit: 180, // 3 minutos
+    timeLimit: 180,
     description: 'Find the password hidden in system logs',
 
     variables: {
@@ -32,36 +35,173 @@ const scenarioTemplates = {
     }
   },
 
-  // (Opcional) lo dejamos por si lo quieres más adelante
-  hidden_treasure: {
-    id: 'hidden_treasure',
-    name: 'Hidden Treasure',
+  // ========== NETWORK SCENARIOS (nuevo tipo) ==========
+
+  antonios_laptop: {
+    id: 'antonios_laptop',
+    name: "Antonio's Laptop",
+    category: 'network',
     difficulty: 'medium',
-    timeLimit: 240,
-    description: 'Find the flag hidden in secret files',
+    timeLimit: 300, // 5 minutos
+    description: 'Hack into Antonio\'s laptop through the network. Use nmap, ssh, and explore the internal network.',
+    
+    briefing: `MISSION BRIEFING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Target: Antonio's laptop (internal network)
+Entry Point: 203.0.113.10 (Bastion server)
+
+Initial Credentials:
+  Username: student
+  Password: student123
+
+Objective: Extract the flag from Antonio's Documents folder
+
+Hint: Start by scanning the entry point with 'nmap'
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
 
     variables: {
-      secretDirs: ['.config', '.cache', '.local', '.hidden'],
-      secretFiles: ['.secret', '.treasure', '.flag', '.data'],
-      decoyDirs: ['backup', 'old', 'archive', 'temp']
+      targetNames: ['antonio', 'maria', 'carlos', 'laura'],
+      internalIPs: ['10.10.0.20', '10.10.0.25', '10.10.0.30'],
+      bastionIPs: ['203.0.113.10', '198.51.100.25', '192.0.2.50'],
+      passwords: ['qwerty123', 'letmein', 'secret123', 'pass1234']
+    },
+
+    // Filesystem multi-host
+    hosts: {
+      external: {
+        // Solo briefing disponible
+        showBriefing: true
+      },
+      
+      bastion: {
+        hostname: '203.0.113.10',
+        internalIP: '10.10.0.5',
+        filesystem: {
+          '/': { type: 'dir', contents: ['home', 'var'] },
+          '/home': { type: 'dir', contents: ['student'] },
+          '/home/student': { type: 'dir', contents: ['notes.txt', '.ssh'] },
+          '/home/student/notes.txt': {
+            type: 'file',
+            content: `Network Topology Notes
+━━━━━━━━━━━━━━━━━━━━━━━━
+Internal network: 10.10.0.0/24
+Known hosts:
+  - This machine: 10.10.0.5
+  - Target laptop: 10.10.0.XX (scan to discover)
+
+Tip: Use 'nmap 10.10.0.0/24' to find active hosts`
+          },
+          '/home/student/.ssh': { type: 'dir', contents: ['id_rsa'] },
+          '/home/student/.ssh/id_rsa': {
+            type: 'file',
+            content: `-----BEGIN PRIVATE KEY-----
+(SSH key for internal access)
+Note: This key works for user 'antonio'
+-----END PRIVATE KEY-----`
+          },
+          '/var': { type: 'dir', contents: ['log'] },
+          '/var/log': { type: 'dir', contents: ['auth.log'] },
+          '/var/log/auth.log': {
+            type: 'file',
+            content: `[INFO] SSH login: user 'student' from external
+[INFO] Internal network access granted
+[INFO] Recent connections from 10.10.0.20 (antonio-laptop)
+[WARN] Weak password detected on internal host`
+          }
+        }
+      },
+      
+      target: {
+        // Se genera dinámicamente con variables
+        filesystem: {
+          '/': { type: 'dir', contents: ['home'] },
+          '/home': { type: 'dir', contents: ['antonio'] },
+          '/home/antonio': { type: 'dir', contents: ['Documents', 'Desktop'] },
+          '/home/antonio/Documents': { type: 'dir', contents: ['grades.xlsx', 'notes.txt'] },
+          '/home/antonio/Documents/grades.xlsx': {
+            type: 'file',
+            content: `Student Grades - CONFIDENTIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[... grades data ...]
+
+🎯 FLAG{PLACEHOLDER}`
+          },
+          '/home/antonio/Documents/notes.txt': {
+            type: 'file',
+            content: 'Remember to backup grades file to secure server...'
+          },
+          '/home/antonio/Desktop': { type: 'dir', contents: ['readme.txt'] },
+          '/home/antonio/Desktop/readme.txt': {
+            type: 'file',
+            content: 'Personal files. Check Documents folder for work files.'
+          }
+        }
+      }
     }
   }
 };
 
 // Generador de filesystem basado en seed
 function generateFilesystem(templateId, seed) {
-  // ✅ Fallback: nunca crashear el servidor
   const template =
     scenarioTemplates[templateId] ||
-    scenarioTemplates.hidden_files ||
-    scenarioTemplates.log_hunter;
+    scenarioTemplates.hidden_files;
 
   const random = seededRandom(seed);
   const vars = template.variables;
 
   let filesystem = {};
   let flag = `FLAG{${template.id}_${seed}_${random.string(8)}}`;
+  let networkData = null; // Para escenarios de red
 
+  // ========== NETWORK SCENARIOS ==========
+  if (template.category === 'network') {
+    // Variables aleatorias
+    const targetName = vars.targetNames[random.int(vars.targetNames.length)];
+    const targetIP = vars.internalIPs[random.int(vars.internalIPs.length)];
+    const bastionIP = vars.bastionIPs[random.int(vars.bastionIPs.length)];
+    const targetPassword = vars.passwords[random.int(vars.passwords.length)];
+
+    networkData = {
+      bastionIP: bastionIP,
+      bastionUsername: 'student',
+      bastionPassword: 'student123',
+      internalNetwork: '10.10.0.0/24',
+      targetIP: targetIP,
+      targetUsername: targetName,
+      targetPassword: targetPassword,
+      targetHostname: `${targetName}-laptop`
+    };
+
+    // Copiar filesystems base de los hosts
+    const bastionFS = JSON.parse(JSON.stringify(template.hosts.bastion.filesystem));
+    const targetFS = JSON.parse(JSON.stringify(template.hosts.target.filesystem));
+
+    // Actualizar flag en target
+    targetFS[`/home/${targetName}/Documents/grades.xlsx`] = targetFS['/home/antonio/Documents/grades.xlsx'];
+    targetFS[`/home/${targetName}/Documents/grades.xlsx`].content = 
+      targetFS[`/home/${targetName}/Documents/grades.xlsx`].content.replace('PLACEHOLDER', flag);
+    
+    delete targetFS['/home/antonio/Documents/grades.xlsx'];
+    targetFS['/home'][targetName] = targetFS['/home/antonio'];
+    delete targetFS['/home/antonio'];
+    targetFS[`/home/${targetName}`].contents = ['Documents', 'Desktop'];
+
+    return {
+      filesystem: {
+        bastion: bastionFS,
+        target: targetFS
+      },
+      flag,
+      templateId: template.id,
+      category: template.category,
+      networkData,
+      briefing: template.briefing
+    };
+  }
+
+  // ========== ARCADE SCENARIOS (código existente) ==========
+  
   switch (template.id) {
     case 'log_hunter': {
       const logDir = vars.logDirs[random.int(vars.logDirs.length)];
@@ -99,7 +239,6 @@ function generateFilesystem(templateId, seed) {
       break;
     }
 
-    // ✅ hidden_files (tu selector)
     case 'hidden_files': {
       const secretDir = vars.secretDirs[random.int(vars.secretDirs.length)];
       const secretFile = vars.secretFiles[random.int(vars.secretFiles.length)];
@@ -120,7 +259,6 @@ function generateFilesystem(templateId, seed) {
           content: 'Nothing here. Try looking in hidden directories...'
         },
 
-        // Trampa
         '/home/user/documents/virus.exe': {
           type: 'file',
           content: '🦠 MALWARE DETECTED!\n💥 SYSTEM COMPROMISED!\n⚠️ Rebooting security protocols...',
@@ -140,50 +278,16 @@ function generateFilesystem(templateId, seed) {
         '/etc': { type: 'dir', contents: ['config'] },
         '/etc/config': { type: 'file', content: 'flag_location=hidden\nsecurity_level=high' },
 
-        // Carpeta oculta donde está el flag
         [`/home/user/${secretDir}`]: { type: 'dir', contents: [secretFile] },
         [`/home/user/${secretDir}/${secretFile}`]: {
           type: 'file',
           content: `Congratulations!\n\n${flag}`
-        }
-      };
-      break;
-    }
-
-    // mantenemos hidden_treasure por si quieres usarlo luego
-    case 'hidden_treasure': {
-      const secretDir = vars.secretDirs[random.int(vars.secretDirs.length)];
-      const secretFile = vars.secretFiles[random.int(vars.secretFiles.length)];
-      const decoyDir = vars.decoyDirs[random.int(vars.decoyDirs.length)];
-
-      filesystem = {
-        '/': { type: 'dir', contents: ['home', 'var'] },
-        '/home': { type: 'dir', contents: ['user'] },
-        '/home/user': { type: 'dir', contents: ['documents', secretDir] },
-        '/home/user/documents': { type: 'dir', contents: ['report.txt'] },
-        '/home/user/documents/report.txt': {
-          type: 'file',
-          content: 'Nothing here. Try looking in hidden directories...'
-        },
-        [`/home/user/${secretDir}`]: { type: 'dir', contents: [secretFile] },
-        [`/home/user/${secretDir}/${secretFile}`]: {
-          type: 'file',
-          content: `Congratulations!\n\n${flag}`
-        },
-        '/var': { type: 'dir', contents: [decoyDir] },
-        [`/var/${decoyDir}`]: { type: 'dir', contents: ['fake.txt'] },
-        [`/var/${decoyDir}/fake.txt`]: {
-          type: 'file',
-          content: 'This is not the flag you are looking for...',
-          isTrap: true,
-          penaltyTime: 3000
         }
       };
       break;
     }
 
     default: {
-      // Nunca debería llegar aquí por el fallback
       filesystem = {
         '/': { type: 'dir', contents: ['home'] },
         '/home': { type: 'dir', contents: ['user'] },
@@ -194,7 +298,12 @@ function generateFilesystem(templateId, seed) {
     }
   }
 
-  return { filesystem, flag, templateId: template.id };
+  return { 
+    filesystem, 
+    flag, 
+    templateId: template.id,
+    category: template.category || 'arcade'
+  };
 }
 
 // Generador de números aleatorios con seed
