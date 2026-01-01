@@ -93,46 +93,63 @@ Nmap done: 1 IP address scanned`
 
       // Desde bastion → escanear red interna
       if (currentHost === 'bastion') {
-        if (target.includes('10.10.0')) {
-          // Escaneo de subred
-          if (target.includes('/24')) {
-            const discovered = [
-              `10.10.0.5 (bastion - this machine)`,
-              `${networkData.targetIP} (${networkData.targetHostname})`
-            ];
-            
-            // Añadir a hosts conocidos
-            if (!player.knownHosts.includes(networkData.targetIP)) {
-              player.knownHosts.push(networkData.targetIP);
-            }
+        // Escanear localhost (la propia máquina bastion)
+        if (target === '10.10.0.5' || target === 'localhost') {
+          return {
+            output: `Nmap scan report for 10.10.0.5 (localhost)
 
-            return {
-              output: `Scanning network ${target}...
+HOST: 10.10.0.5 (bastion - this machine)
+PORT     STATE    SERVICE
+22/tcp   open     ssh
+
+Note: You are scanning your own machine`,
+            color: 'cyan'
+          };
+        }
+
+        // Escaneo de subred completa
+        if (target.startsWith('10.10.0') && target.includes('/24')) {
+          const discovered = [
+            `10.10.0.5 (bastion - this machine)`,
+            `${networkData.targetIP} (${networkData.targetHostname})`
+          ];
+          
+          // Añadir a hosts conocidos
+          if (!player.knownHosts.includes(networkData.targetIP)) {
+            player.knownHosts.push(networkData.targetIP);
+          }
+
+          return {
+            output: `Scanning network ${target}...
 
 DISCOVERED HOSTS:
 ${discovered.join('\n')}
 
 Scan complete: 2 hosts found`,
-              color: 'green'
-            };
+            color: 'green'
+          };
+        }
+
+        // Escaneo de IP específica del target
+        if (target === networkData.targetIP) {
+          if (!player.knownHosts.includes(networkData.targetIP)) {
+            player.knownHosts.push(networkData.targetIP);
           }
 
-          // Escaneo de IP específica
-          if (target === networkData.targetIP) {
-            if (!player.knownHosts.includes(networkData.targetIP)) {
-              player.knownHosts.push(networkData.targetIP);
-            }
-
-            return {
-              output: `Nmap scan report for ${target}
+          return {
+            output: `Nmap scan report for ${target}
 
 HOST: ${target} (${networkData.targetHostname})
 PORT     STATE    SERVICE
 22/tcp   open     ssh
 
 Host is up`
-            };
-          }
+          };
+        }
+
+        // IP dentro del rango pero no válida
+        if (target.startsWith('10.10.0')) {
+          return { error: `Host ${target} seems down or doesn't exist` };
         }
 
         return { error: `No route to host ${target}` };
