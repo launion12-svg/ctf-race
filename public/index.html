@@ -405,11 +405,10 @@
       addLine('═══════════════════════════════════', 'success');
       addLine('🚀 GAME STARTED! Find the FLAG!', 'success');
       addLine('═══════════════════════════════════', 'success');
+      addLine('');
+      addLine('Type "mission" to see your briefing', 'info');
       
       if (currentCategory === 'network') {
-        addLine('');
-        addLine('📡 Network Scenario Mode', 'cyan');
-        addLine('Type "mission" to see your briefing', 'info');
         addLine('Type "status" to check your progress', 'info');
         currentHost = 'external';
         updateHostIndicator('external');
