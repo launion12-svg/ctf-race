@@ -11,6 +11,34 @@ const scenarioTemplates = {
     difficulty: 'easy',
     timeLimit: 180,
     description: 'Find the flag hidden in hidden files (use ls -a).',
+    
+    briefing: `MISSION BRIEFING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 OBJECTIVE: Find the hidden FLAG
+⏱️  TIME LIMIT: 3 minutes
+📊 DIFFICULTY: Easy
+
+📝 SITUATION:
+A flag has been hidden somewhere in the filesystem.
+Not all files and directories are visible by default.
+
+💡 HINTS:
+• Start exploring from /home/user
+• Some items are hidden from normal view
+• Use 'ls -a' to reveal ALL files (including hidden ones)
+• Hidden files/folders start with a dot (.)
+• Be careful - some files might be traps!
+
+⚠️  WARNING: 
+Reading certain files may trigger security protocols
+that will freeze your terminal temporarily.
+
+🔧 USEFUL COMMANDS:
+  ls -a     Show all files (including hidden)
+  cd <dir>  Change directory
+  cat <file> Read file contents
+  pwd       Show current location
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
 
     variables: {
       secretDirs: ['.config', '.cache', '.local', '.hidden'],
@@ -26,6 +54,35 @@ const scenarioTemplates = {
     difficulty: 'easy',
     timeLimit: 180,
     description: 'Find the password hidden in system logs',
+    
+    briefing: `MISSION BRIEFING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 OBJECTIVE: Find the password hidden in logs
+⏱️  TIME LIMIT: 3 minutes
+📊 DIFFICULTY: Easy
+
+📝 SITUATION:
+A system administrator left sensitive information in
+the system logs. Your job is to find it.
+
+💡 HINTS:
+• Check /home/user for notes or clues
+• System logs are typically stored in /var
+• Administrators often leave maintenance notes
+• Look for patterns like "password", "hint", or usernames
+• Use grep to search within log files
+
+🔧 USEFUL COMMANDS:
+  cat <file>           Read file contents
+  grep <text> <file>   Search for text in a file
+  find <name>          Find files by name
+  ls <directory>       List directory contents
+  
+📚 EXAMPLE:
+  grep "password" /var/logs/system.log
+  
+This will search for the word "password" in system.log
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
 
     variables: {
       logDirs: ['logs', 'audit', 'backups', 'history'],
@@ -315,7 +372,8 @@ function generateFilesystem(templateId, seed) {
     filesystem, 
     flag, 
     templateId: template.id,
-    category: template.category || 'arcade'
+    category: template.category || 'arcade',
+    briefing: template.briefing || null
   };
 }
 
