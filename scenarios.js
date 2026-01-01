@@ -159,11 +159,10 @@ function generateFilesystem(templateId, seed) {
     // Variables aleatorias
     const targetName = vars.targetNames[random.int(vars.targetNames.length)];
     const targetIP = vars.internalIPs[random.int(vars.internalIPs.length)];
-    const bastionIP = vars.bastionIPs[random.int(vars.bastionIPs.length)];
     const targetPassword = vars.passwords[random.int(vars.passwords.length)];
 
     networkData = {
-      bastionIP: bastionIP,
+      bastionIP: '203.0.113.10', // IP fija que coincide con el briefing
       bastionUsername: 'student',
       bastionPassword: 'student123',
       internalNetwork: '10.10.0.0/24',
