@@ -175,17 +175,31 @@ function generateFilesystem(templateId, seed) {
 
     // Copiar filesystems base de los hosts
     const bastionFS = JSON.parse(JSON.stringify(template.hosts.bastion.filesystem));
-    const targetFS = JSON.parse(JSON.stringify(template.hosts.target.filesystem));
-
-    // Actualizar flag en target
-    targetFS[`/home/${targetName}/Documents/grades.xlsx`] = targetFS['/home/antonio/Documents/grades.xlsx'];
-    targetFS[`/home/${targetName}/Documents/grades.xlsx`].content = 
-      targetFS[`/home/${targetName}/Documents/grades.xlsx`].content.replace('PLACEHOLDER', flag);
     
-    delete targetFS['/home/antonio/Documents/grades.xlsx'];
-    targetFS['/home'][targetName] = targetFS['/home/antonio'];
-    delete targetFS['/home/antonio'];
-    targetFS[`/home/${targetName}`].contents = ['Documents', 'Desktop'];
+    // Construir filesystem del target con el nombre de usuario correcto
+    const targetFS = {
+      '/': { type: 'dir', contents: ['home'] },
+      '/home': { type: 'dir', contents: [targetName] },
+      [`/home/${targetName}`]: { type: 'dir', contents: ['Documents', 'Desktop'] },
+      [`/home/${targetName}/Documents`]: { type: 'dir', contents: ['grades.xlsx', 'notes.txt'] },
+      [`/home/${targetName}/Documents/grades.xlsx`]: {
+        type: 'file',
+        content: `Student Grades - CONFIDENTIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[... grades data ...]
+
+🎯 ${flag}`
+      },
+      [`/home/${targetName}/Documents/notes.txt`]: {
+        type: 'file',
+        content: 'Remember to backup grades file to secure server...'
+      },
+      [`/home/${targetName}/Desktop`]: { type: 'dir', contents: ['readme.txt'] },
+      [`/home/${targetName}/Desktop/readme.txt`]: {
+        type: 'file',
+        content: 'Personal files. Check Documents folder for work files.'
+      }
+    };
 
     return {
       filesystem: {
